@@ -2,7 +2,9 @@ const User = require('../models/user');
 const { hashPassword, comparePassword } = require('../helpers/passwordEncrypt')
 const jwt = require('jsonwebtoken');
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const app = express()
+app.use(cookieParser());
 app.use(express.json());
 
 const test = (req, res) => {
@@ -66,12 +68,12 @@ const loginUser = async (req, res) => {
         }
         const match = await comparePassword(password, user.password)
         if(!password) {
-            res.json({
+            return res.json({
                 err: 'Please enter the password'
             })
         }
         if(match) {
-            jwt.sign({email: user.email, id: user._id, name: user.username}, process.env.JWT_SECRET, {expiresIn: '1h'}, (err, token) => {
+            jwt.sign({email: user.email, id: user._id, name: user.username}, process.env.JWT_SECRET, {expiresIn: '4y'}, (err, token) => {
                 if(err) throw err;
                 res.cookie('token', token, { httpOnly: true });
                 res.json({ user, role: user.role, token });
@@ -87,12 +89,18 @@ const loginUser = async (req, res) => {
     }
 }
 
+const logoutUser = async (req, res) => {
+    res.clearCookie('token')
+    res.json({ message: 'Logged out Successfully'});
+}
+
 const getProfile = (req, res) => {
     const token = req.cookies.token;
     if(token) {
         jwt.verify(token, process.env.JWT_SECRET, {}, (err, user) => {
             if(err) {
-                return 'token expired'
+                res.clearCookie('token')
+                return res.status(401).json({ err: 'You have been logged out for some security purpose.Kindly loginin again in order to book your food' });
             }
             res.json(user)
         })
@@ -105,5 +113,6 @@ module.exports = {
     test,
     registerUser,
     loginUser,
-    getProfile
+    getProfile,
+    logoutUser
 }
