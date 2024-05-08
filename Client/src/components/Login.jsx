@@ -31,15 +31,11 @@
           if(responseData.err) {
             toast.error(responseData.err)
           } else {
-            setData({});
             toast.success('Welcome Back!Lets pick up where you left off.')
-            localStorage.setItem('token', responseData.token);
-            localStorage.setItem('loggedIn', true);
-            const token = localStorage.getItem('token', data.data);
-            if(responseData.role === 'admin') {
-              navigate('/dashboard')
+            if (responseData.role === 'admin') {
+              navigate('/dashboard');
             } else {
-              navigate('/')
+              navigate('/');
             }
           }
         } catch(err) {
@@ -126,7 +122,7 @@
                     <a href="" className='text-customBlue font-medium underline underline-offset-4'>Forgot Password?</a>
                   </div>
                 </div>
-                <a href=""><button className='mt-6 border border-customBlue p-2 w-customButtonWidth rounded-xl bg-customBlue text-white font-semibold text-base'>Login</button></a>
+                <button type='submit' className='mt-6 border border-customBlue p-2 w-customButtonWidth rounded-xl bg-customBlue text-white font-semibold text-base'>Login</button>
                 <div className='mt-2 text-gray-400 text-center'>
                   Not Yet Have an Account?
                   <span className='text-customBlue font-medium underline underline-offset-4 cursor-pointer'>
