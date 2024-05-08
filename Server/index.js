@@ -6,7 +6,7 @@ const { mongoose } = require('mongoose');
 const cookieParser = require('cookie-parser');
 
 // database connection
-mongoose.connect(process.env.MONGODB_URL_COMPASS)
+mongoose.connect(process.env.MONGODB_URL)
 
 const db = mongoose.connection;
 

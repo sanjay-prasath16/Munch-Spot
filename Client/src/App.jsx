@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import { UserContextProvider } from '../context/UserContext'
 import './App.css'
 
-axios.defaults.baseURL = import.meta.env.REACT_APP_LOCALHOST_URL;
+axios.defaults.baseURL = import.meta.env.BACKEND_URL;
 axios.defaults.withCredentials = true;
 
 function App() {
