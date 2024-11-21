@@ -43,6 +43,12 @@
         }
       };
 
+      const googleAuthenticate = (e) => {
+        e.preventDefault();
+        // Redirect the user to the Google OAuth flow
+        window.location.href = 'http://localhost:3001/auth/google';
+    };    
+
       const showpassword = () => {
         setShowPassword(!showPassword);
         const updatedIconColor = [...iconColor];
@@ -80,7 +86,7 @@
           <div className="w-full flex justify-center items-center h-screen xl:w-1/2">
             <div className="border-2 border-customBorderPurple rounded-3xl text-start  customsm:border-none" style={{ width: "450px", height: "570px", padding: '10px 70px' }}>
               <h1 className="mt-14 font-semibold text-xl text-center">Get More Access</h1>
-              <form action="" onSubmit={loginUser} className="mt-6">
+              <form action="" className="mt-6">
                 {iconColor.map((item, index) => (
                   <div key={index} className='container'>
                     <div className='relative mt-6'>
@@ -122,7 +128,7 @@
                     <a href="" className='text-customBlue font-medium underline underline-offset-4'>Forgot Password?</a>
                   </div>
                 </div>
-                <button type='submit' className='mt-6 border border-customBlue p-2 w-customButtonWidth rounded-xl bg-customBlue text-white font-semibold text-base'>Login</button>
+                <button onClick={loginUser} className='mt-6 border border-customBlue p-2 w-customButtonWidth rounded-xl bg-customBlue text-white font-semibold text-base'>Login</button>
                 <div className='mt-2 text-gray-400 text-center'>
                   Not Yet Have an Account?
                   <span className='text-customBlue font-medium underline underline-offset-4 cursor-pointer'>
@@ -131,7 +137,7 @@
                 </div>
                 <p className='mt-5 text-gray-400 text-center'>Or Login With:</p>
                 <ol className='flex justify-between mt-4'>
-                  <button className='border border-customBorderPurple p-3 rounded-xl'><FcGoogle className='w-8 h-8 cursor-pointer'/></button>
+                  <button className='border border-customBorderPurple p-3 rounded-xl' onClick={googleAuthenticate}><FcGoogle className='w-8 h-8 cursor-pointer'/></button>
                   <li className='border border-customBorderPurple p-3 rounded-xl cursor-pointer'><FacebookSvg /></li>
                   <li className='border border-customBorderPurple p-3 rounded-xl cursor-pointer'><Twitter /></li>
                   <li className='border border-customBorderPurple p-3 rounded-xl cursor-pointer'><Linkedin /></li>

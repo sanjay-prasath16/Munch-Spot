@@ -1,5 +1,7 @@
 const User = require('../models/user');
-const { hashPassword, comparePassword } = require('../helpers/passwordEncrypt')
+const { hashPassword, comparePassword } = require('../helpers/passwordEncrypt');
+const passport = require('passport');
+require('../oauth/authentication');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const cookieParser = require('cookie-parser');
@@ -89,6 +91,49 @@ const loginUser = async (req, res) => {
     }
 }
 
+const oauth = passport.authenticate('google', { scope: ['email', 'profile'] });
+
+const oauthResponse = (req, res, next) => {
+    console.log("entering response page");
+    passport.authenticate('google', async (err, user, info) => {
+        if (err) {
+            console.error('Authentication error:', err);
+            return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+        }
+
+        if (!user) {
+            return res.status(401).json({ message: 'Authentication failed. Please try again.' });
+        }
+
+        try {
+            let existingUser = await User.findOne({ googleId: user.id });
+
+            if (!existingUser) {
+                const newUser = new User({
+                    googleId: user.id,
+                    username: user.displayName,
+                    email: user.email,
+                    profilePicture: user.picture,
+                });
+
+                existingUser = await newUser.save();
+            }
+
+            req.logIn(existingUser, (err) => {
+                if (err) {
+                    console.error('Login error:', err);
+                    return res.status(500).json({ message: 'Login failed. Please try again.' });
+                }
+
+                return res.redirect('http://localhost:5173/');
+            });
+        } catch (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ message: 'Database error. Please try again.' });
+        }
+    })(req, res, next);
+};
+
 const logoutUser = async (req, res) => {
     res.clearCookie('token')
     res.json({ message: 'Logged out Successfully'});
@@ -113,6 +158,8 @@ module.exports = {
     test,
     registerUser,
     loginUser,
+    oauth,
+    oauthResponse,
     getProfile,
     logoutUser
 }

@@ -1,21 +1,31 @@
 const express = require('express');
-const dotenv = require('dotenv').config();
-const cors = require('cors');
+require('dotenv').config();
+require('cors');
 const app = express();
+const passport = require('passport')
 const { mongoose } = require('mongoose');
 const cookieParser = require('cookie-parser');
+const session = require('express-session');
 
-// database connection
 mongoose.connect(process.env.MONGODB_URL_COMPASS)
 
 const db = mongoose.connection;
+
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 db.on('error', console.error.bind(console, 'Connection error:'));
 db.once('open', () => {
   console.log('Connected to MongoDB!');
 });
 
-// middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({extended: false}))
