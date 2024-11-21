@@ -24,7 +24,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files
-.env
-.env.client
-.env.server
+# Ignore .env file in the server folder
+Server/.env
