@@ -43,11 +43,25 @@
         }
       };
 
-      const googleAuthenticate = (e) => {
+      const googleAuthenticate = async (e) => {
         e.preventDefault();
-        // Redirect the user to the Google OAuth flow
-        window.location.href = 'http://localhost:3001/auth/google';
-    };    
+        try {
+            // Make a GET request to the backend to initiate the OAuth flow
+            const response = await axios.get('auth/google', {
+                withCredentials: true, // Include cookies if needed
+            });
+    
+            // Redirect the user to the Google OAuth flow URL received from the backend
+            if (response.data?.redirectUrl) {
+                window.location.href = response.data.redirectUrl;
+            } else {
+                console.error('No redirect URL provided by the server.');
+            }
+        } catch (error) {
+            console.error('Error during Google authentication:', error);
+            alert('Failed to initiate Google authentication. Please try again.');
+        }
+    };
 
       const showpassword = () => {
         setShowPassword(!showPassword);
