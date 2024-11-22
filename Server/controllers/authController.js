@@ -17,44 +17,44 @@ const registerUser = async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if(!username) {
+        if (!username) {
             return res.json({
                 err: 'enter a name to proceed'
             })
         };
-        if(!email) {
+        if (!email) {
             return res.json({
                 err: 'enter a email to proceed'
             })
-        } else if(!emailRegex.test(email)) {
+        } else if (!emailRegex.test(email)) {
             return res.json({
                 err: 'enter email in the format of abc@gmail.com'
             })
         }
-        if(!password) {
+        if (!password) {
             return res.json({
                 err: 'enter a password to proceed'
             })
-        } else if(password.length < 6) {
+        } else if (password.length < 6) {
             return res.json({
                 err: 'password should be at least 6 characters'
             })
         };
         const exist = await User.findOne({ email });
-        if(exist) {
+        if (exist) {
             return res.json({
                 err: 'Entered email is already registered with us!!'
             })
         };
 
-        const hashedPassword  = await hashPassword(password)
+        const hashedPassword = await hashPassword(password)
         const user = await User.create({
             username,
             email,
             password: hashedPassword,
         });
         return res.json(user)
-    } catch(err) {
+    } catch (err) {
         console.log(err);
     }
 }
@@ -63,38 +63,56 @@ const loginUser = async (req, res) => {
     try {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
-        if(!user) {
+        if (!user) {
             return res.json({
                 err: 'Sorry, No user found with the entered User name'
             })
         }
         const match = await comparePassword(password, user.password)
-        if(!password) {
+        if (!password) {
             return res.json({
                 err: 'Please enter the password'
             })
         }
-        if(match) {
-            jwt.sign({email: user.email, id: user._id, name: user.username}, process.env.JWT_SECRET, {expiresIn: '4y'}, (err, token) => {
-                if(err) throw err;
+        if (match) {
+            jwt.sign({ email: user.email, id: user._id, name: user.username }, process.env.JWT_SECRET, { expiresIn: '4y' }, (err, token) => {
+                if (err) throw err;
                 res.cookie('token', token, { httpOnly: true });
                 res.json({ user, role: user.role, token });
             })
         }
-        if(!match) {
+        if (!match) {
             return res.json({
                 err: 'You have entered a wrong Password.Please Try Again'
             })
         }
-    } catch(err) {
+    } catch (err) {
         console.log(err)
     }
 }
 
+const generateAccessToken = (user) => {
+    return jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+    );
+};
+
+const generateRefreshToken = (user) => {
+    return jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+    );
+};
+
 const oauth = passport.authenticate('google', { scope: ['email', 'profile'] });
 
 const oauthResponse = (req, res, next) => {
-    console.log("entering response page");
+    console.log("Entering response page");
+    let existingUser = User.findOne({ googleId: User.email });
+    console.log(existingUser);
     passport.authenticate('google', async (err, user, info) => {
         if (err) {
             console.error('Authentication error:', err);
@@ -106,27 +124,66 @@ const oauthResponse = (req, res, next) => {
         }
 
         try {
-            let existingUser = await User.findOne({ googleId: user.id });
+            let existingUser = await User.findOne({ googleId: user.email });
+            console.log(existingUser);
 
-            if (!existingUser) {
-                const newUser = new User({
-                    googleId: user.id,
-                    username: user.displayName,
-                    email: user.email,
-                    profilePicture: user.picture,
+            if (existingUser) {
+                // If user already exists, send user data to the frontend
+                return res.status(200).json({
+                    message: 'User already exists',
+                    user: {
+                        id: existingUser._id,
+                        username: existingUser.username,
+                        email: existingUser.email,
+                        profilePicture: existingUser.profilePicture,
+                    },
                 });
+            } else {
+                // If user doesn't exist, create a new user
+            const newUser = new User({
+                googleId: user.id,
+                username: user.displayName,
+                email: user.email,
+                profilePicture: user.picture,
+            });
 
-                existingUser = await newUser.save();
-            }
+            const savedUser = await newUser.save();
 
-            req.logIn(existingUser, (err) => {
+            const accessToken = generateAccessToken(savedUser);
+            const refreshToken = generateRefreshToken(savedUser);
+
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Only secure in production
+                sameSite: 'Lax',
+                maxAge: 60 * 60 * 1000, // 1 hour
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            });
+
+            req.logIn(savedUser, (err) => {
                 if (err) {
                     console.error('Login error:', err);
                     return res.status(500).json({ message: 'Login failed. Please try again.' });
                 }
 
-                return res.redirect('http://localhost:5173/');
+                res.status(200).json({
+                    message: 'Authentication successful',
+                    user: {
+                        id: savedUser._id,
+                        username: savedUser.username,
+                        email: savedUser.email,
+                        profilePicture: savedUser.profilePicture,
+                    },
+                    tokens: { accessToken, refreshToken },
+                });
             });
+            }
         } catch (err) {
             console.error('Database error:', err);
             return res.status(500).json({ message: 'Database error. Please try again.' });
@@ -136,14 +193,14 @@ const oauthResponse = (req, res, next) => {
 
 const logoutUser = async (req, res) => {
     res.clearCookie('token')
-    res.json({ message: 'Logged out Successfully'});
+    res.json({ message: 'Logged out Successfully' });
 }
 
 const getProfile = (req, res) => {
     const token = req.cookies.token;
-    if(token) {
+    if (token) {
         jwt.verify(token, process.env.JWT_SECRET, {}, (err, user) => {
-            if(err) {
+            if (err) {
                 res.clearCookie('token')
                 return res.status(401).json({ err: 'You have been logged out for some security purpose.Kindly loginin again in order to book your food' });
             }
