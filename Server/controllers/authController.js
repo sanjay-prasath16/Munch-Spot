@@ -128,7 +128,6 @@ const oauthResponse = (req, res, next) => {
             console.log(existingUser);
 
             if (existingUser) {
-                // If user already exists, send user data to the frontend
                 return res.status(200).json({
                     message: 'User already exists',
                     user: {
@@ -139,7 +138,6 @@ const oauthResponse = (req, res, next) => {
                     },
                 });
             } else {
-                // If user doesn't exist, create a new user
             const newUser = new User({
                 googleId: user.id,
                 username: user.displayName,
@@ -154,16 +152,16 @@ const oauthResponse = (req, res, next) => {
 
             res.cookie('accessToken', accessToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Only secure in production
+                secure: process.env.NODE_ENV === 'production',
                 sameSite: 'Lax',
-                maxAge: 60 * 60 * 1000, // 1 hour
+                maxAge: 60 * 60 * 1000,
             });
 
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'Lax',
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 
             req.logIn(savedUser, (err) => {
