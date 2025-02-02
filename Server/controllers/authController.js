@@ -109,84 +109,66 @@ const generateRefreshToken = (user) => {
 
 const oauth = passport.authenticate('google', { scope: ['email', 'profile'] });
 
-const oauthResponse = (req, res, next) => {
-    console.log("Entering response page");
-    let existingUser = User.findOne({ googleId: User.email });
-    console.log(existingUser);
-    passport.authenticate('google', async (err, user, info) => {
-        if (err) {
-            console.error('Authentication error:', err);
-            return res.status(500).json({ message: 'Something went wrong. Please try again.' });
-        }
-
-        if (!user) {
+const oauthResponse = async (req, res) => {
+    try {
+        if (!req.user) {
             return res.status(401).json({ message: 'Authentication failed. Please try again.' });
         }
 
-        try {
-            let existingUser = await User.findOne({ googleId: user.email });
-            console.log(existingUser);
+        const existingUser = await User.findOne({ googleId: req.user.googleId });
 
-            if (existingUser) {
-                return res.status(200).json({
-                    message: 'User already exists',
-                    user: {
-                        id: existingUser._id,
-                        username: existingUser.username,
-                        email: existingUser.email,
-                        profilePicture: existingUser.profilePicture,
-                    },
-                });
-            } else {
-            const newUser = new User({
-                googleId: user.id,
-                username: user.displayName,
-                email: user.email,
-                profilePicture: user.picture,
+        if (existingUser) {
+            return res.status(200).json({
+                message: 'User already exists',
+                user: {
+                    id: existingUser._id,
+                    username: existingUser.username,
+                    email: existingUser.email,
+                    profilePicture: existingUser.profilePicture,
+                },
             });
-
-            const savedUser = await newUser.save();
-
-            const accessToken = generateAccessToken(savedUser);
-            const refreshToken = generateRefreshToken(savedUser);
-
-            res.cookie('accessToken', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-                maxAge: 60 * 60 * 1000,
-            });
-
-            res.cookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-            });
-
-            req.logIn(savedUser, (err) => {
-                if (err) {
-                    console.error('Login error:', err);
-                    return res.status(500).json({ message: 'Login failed. Please try again.' });
-                }
-
-                res.status(200).json({
-                    message: 'Authentication successful',
-                    user: {
-                        id: savedUser._id,
-                        username: savedUser.username,
-                        email: savedUser.email,
-                        profilePicture: savedUser.profilePicture,
-                    },
-                    tokens: { accessToken, refreshToken },
-                });
-            });
-            }
-        } catch (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ message: 'Database error. Please try again.' });
         }
-    })(req, res, next);
+
+        const newUser = new User({
+            googleId: req.user.googleId,
+            username: req.user.username,
+            email: req.user.email,
+            profilePicture: req.user.profilePicture,
+        });
+
+        const savedUser = await newUser.save();
+
+        const accessToken = generateAccessToken(savedUser);
+        const refreshToken = generateRefreshToken(savedUser);
+
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
+            maxAge: 60 * 60 * 1000,
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.status(200).json({
+            message: 'Authentication successful',
+            user: {
+                id: savedUser._id,
+                username: savedUser.username,
+                email: savedUser.email,
+                profilePicture: savedUser.profilePicture,
+            },
+            tokens: { accessToken, refreshToken },
+        });
+    } catch (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ message: 'Database error. Please try again.' });
+    }
 };
 
 const logoutUser = async (req, res) => {

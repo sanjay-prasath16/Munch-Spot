@@ -24,8 +24,7 @@ passport.use(new GoogleStrategy(
         await user.save();
       }
 
-      // Pass the accessToken and refreshToken to the `done` callback
-      return done(null, { user, accessToken, refreshToken });
+      return done(null, user);
     } catch (err) {
       console.error("Error in Google Strategy:", err);
       return done(err, null);

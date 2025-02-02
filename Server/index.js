@@ -15,7 +15,12 @@ app.use(session({
   secret: 'your-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false },
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'Lax',
+  },
+  credentials: true,
 }));
 
 app.use(passport.initialize());
@@ -28,12 +33,12 @@ db.once('open', () => {
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({extended: false}))
+app.use(express.urlencoded({ extended: false }))
 
 app.use('/', require('./routes/authRoutes'));
 
 const port = 3001;
 
 app.listen(port, () => {
-    console.log(`server is running on the port ${port}`);
+  console.log(`server is running on the port ${port}`);
 })
